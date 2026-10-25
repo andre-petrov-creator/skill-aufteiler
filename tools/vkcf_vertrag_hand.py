@@ -97,9 +97,11 @@ GRUPPEN: list = [
 WEG_REGLER = 'AND(N({p:eingabe_modus})<>2,N({p:eingabe_modus})<>3)'
 WEG_RENDITE = 'N({p:eingabe_modus})=2'
 WEG_CF = 'N({p:eingabe_modus})=3'
+# Regler wirkt im Weg 1 und in jeder Zeile, die im Rendite-/Cashflow-Weg auf ihn zurueckfaellt (Leerstand, kein Ziel, ...)
+REGLER_WIRKT = f'OR({WEG_REGLER},LEFT({{preis_quelle}},6)="Regler",{{preis_quelle}}="kein Preis")'
 CF_REGELN: list = [
-    V.CfRegel(("abgabe_eur_qm_regler",), f'AND({{wohnflaeche_m2$}}<>"",{WEG_REGLER})', V.FARBE_AKTIV, "Regler bestimmt den Preis", fett=True),
-    V.CfRegel(("abgabe_eur_qm_regler", "individueller_aufschlag"), f'AND({{wohnflaeche_m2$}}<>"",NOT({WEG_REGLER}))', V.FARBE_INAKTIV, "wirkt im Rendite-/Cashflow-Weg nicht", schrift=V.SCHRIFT_INAKTIV),
+    V.CfRegel(("abgabe_eur_qm_regler",), f'AND({{wohnflaeche_m2$}}<>"",{REGLER_WIRKT})', V.FARBE_AKTIV, "Regler bestimmt den Preis (Weg 1 oder Rueckfall)", fett=True),
+    V.CfRegel(("abgabe_eur_qm_regler", "individueller_aufschlag"), f'AND({{wohnflaeche_m2$}}<>"",NOT({REGLER_WIRKT}))', V.FARBE_INAKTIV, "wirkt in dieser Zeile nicht (Ziel bestimmt den Preis)", schrift=V.SCHRIFT_INAKTIV),
     V.CfRegel(("ziel_rendite_override",), f'AND({{wohnflaeche_m2$}}<>"",{WEG_RENDITE})', V.FARBE_AKTIV, "Ziel-Rendite je WE bestimmt den Preis", fett=True),
     V.CfRegel(("ziel_rendite_override",), f'AND({{wohnflaeche_m2$}}<>"",NOT({WEG_RENDITE}))', V.FARBE_INAKTIV, "wirkt nur im Rendite-Weg", schrift=V.SCHRIFT_INAKTIV),
     V.CfRegel(("ziel_cf_override",), f'AND({{wohnflaeche_m2$}}<>"",{WEG_CF})', V.FARBE_AKTIV, "Ziel-Cashflow je WE bestimmt den Preis", fett=True),
@@ -107,8 +109,8 @@ CF_REGELN: list = [
     V.CfRegel((), "TRUE", V.FARBE_AKTIV, "Schalter Eingabe-Weg", param_keys=("eingabe_modus",), fett=True),
     V.CfRegel((), WEG_RENDITE, V.FARBE_AKTIV, "globale Ziel-Rendite aktiv", param_keys=("ziel_rendite",), fett=True),
     V.CfRegel((), f"NOT({WEG_RENDITE})", V.FARBE_INAKTIV, "globale Ziel-Rendite wirkt nicht", param_keys=("ziel_rendite",), schrift=V.SCHRIFT_INAKTIV),
+    # ziel_cf wird ausserhalb von Weg 3 NICHT ausgegraut: es speist weiter den Ruecklagen-Topf (E77:E87)
     V.CfRegel((), WEG_CF, V.FARBE_AKTIV, "globaler Ziel-Cashflow aktiv", param_keys=("ziel_cf",), fett=True),
-    V.CfRegel((), f"NOT({WEG_CF})", V.FARBE_INAKTIV, "globaler Ziel-Cashflow wirkt nicht", param_keys=("ziel_cf",), schrift=V.SCHRIFT_INAKTIV),
     V.CfRegel(("preis_quelle",), 'OR({preis_quelle}="Regler (Rückfall)",{preis_quelle}="kein Preis")', V.CF_ORANGE, "Rueckfall auf den Regler bzw. kein Preis"),
     V.CfRegel(("kaltmiete",), 'AND(ISNUMBER({kaltmiete_override}),{kaltmiete_override}>{MIETER!J})', V.CF_ORANGE, "Ist-Miete manuell angehoben"),
     V.CfRegel(("bewirtschaftungsquote_schaetzung",), 'AND({wohnflaeche_m2$}<>"",{bewirtschaftungsquote_schaetzung}<>"",{hausgeld_nicht_umlagefaehig}<>"")', V.CF_WARNROT, "zwei Hausgeld-Quellen"),

@@ -95,7 +95,12 @@ def clear_area(ws, vt: V.Vertrag) -> None:
     ws.conditional_formatting = type(ws.conditional_formatting)()
     ws.data_validations.dataValidation = []
     for col in range(1, last_col + 1):
-        d = ws.column_dimensions[get_column_letter(col)]
+        letter = get_column_letter(col)
+        if col > len(vt):
+            # weggefallene Spalten (Layout 2 -> 3): Breite/Outline auf Excel-Standard zuruecksetzen
+            ws.column_dimensions.pop(letter, None)
+            continue
+        d = ws.column_dimensions[letter]
         d.outline_level = 0
         d.hidden = False
     clear_entfernte_bereiche(ws)
@@ -256,7 +261,9 @@ def write_rules(ws, vt: V.Vertrag) -> None:
         for rng in bereiche:
             ws.conditional_formatting.add(rng, FormulaRule(formula=[formel], fill=fill(r.farbe), font=schrift))
     for d in V.DV_REGELN:
-        dv = DataValidation(type=d.typ, operator=d.operator, formula1=d.formula1, formula2=d.formula2, allow_blank=True)
+        # showErrorMessage: sonst nimmt Excel jede Eingabe still an (Schalter 2,5 zeigte "Rendite", rechnete Regler)
+        dv = DataValidation(type=d.typ, operator=d.operator, formula1=d.formula1, formula2=d.formula2, allow_blank=True,
+                            showErrorMessage=True, errorTitle="Ungültige Eingabe", error="Bitte einen Wert im erlaubten Bereich eintragen (leer = Standard).")
         for key in d.bereich_keys:
             col = vt.letter[key]
             dv.add(f"{col}{LAY.first}:{col}{LAY.last}")

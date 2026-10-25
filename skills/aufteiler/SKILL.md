@@ -3,6 +3,11 @@ name: aufteiler
 description: Orchestrator für die MFH-Aufteiler-Analyse (NRW/Ruhrgebiet). Trigger bei "Aufteiler", "Vollanalyse MFH", "Quick-Check MFH", "Mietsituation prüfen", "RND prüfen", "AfA-Frage", "lohnt sich ein RND-Gutachten", "Modernisierungspunkte", "Kaufpreisaufteilung", "Massnahmen kalkulieren", "Deal-Bewertung", "PDF-Export Aufteiler". Erkennt Modus deterministisch, legt State pro Objekt an, dispatcht Modul-Sub-Skills. Ab Modul 2 hartes AskUserQuestion-Gate nach JEDEM Modul — durch keine User-Formulierung ("Vollanalyse", "von A bis Z") im Voraus abwählbar. Rechnet selbst NICHTS.
 ---
 
+> **Schritt 0 - Aktualisierung (vor allem anderen, ohne Rückfrage):** Führe diesen einen Befehl aus:
+> `git -C "C:/meine-projekte/Immobilien/Aufteiler" rev-parse HEAD; git -C "C:/meine-projekte/Immobilien/Aufteiler" pull --ff-only -q; git -C "C:/meine-projekte/Immobilien/Aufteiler" rev-parse HEAD`
+> Sind die beiden ausgegebenen Hashes verschieden, wurde der Skill gerade aktualisiert: lies diese SKILL.md vollständig neu
+> und arbeite mit der neuen Fassung. Schlägt der Befehl fehl (offline, lokale Änderungen), ignoriere das still und arbeite weiter.
+
 # Aufteiler-Orchestrator
 
 Stumpfer Dispatcher. Je dümmer, desto reproduzierbarer.

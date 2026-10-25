@@ -144,10 +144,19 @@ def ist_miete_monat(miete: dict, we: dict, od: dict) -> float:
 
 
 def template_is_v2(template: Path) -> bool:
-    """Migriertes Template traegt den Defined Name AUFTEILER_TPL_V2 (Reiter Verkauf Cashflow als Vorwaertskalkulation)."""
+    """Migriertes Template traegt den Defined Name AUFTEILER_TPL_V2 (Reiter Verkauf Cashflow als Vorwaertskalkulation).
+
+    Die Layout-Version muss zum Spaltenvertrag passen - sonst schriebe der Export Eingaben in Formelspalten."""
+    import vkcf_vertrag as V
     wb = load_workbook(template, read_only=True)
     try:
-        return "AUFTEILER_TPL_V2" in wb.defined_names
+        if V.VERSION_MARKER not in wb.defined_names:
+            return False
+        layout = wb.defined_names.get(V.LAYOUT_MARKER)
+        if layout is None or str(layout.attr_text) != str(V.LAYOUT_VERSION):
+            raise SystemExit(f"Template-Layout {getattr(layout, 'attr_text', '?')} passt nicht zum Spaltenvertrag (Layout {V.LAYOUT_VERSION}): {template}\n"
+                             "Template migrieren: python tools/migrate_vkcf_vorwaertskalkulation.py --apply")
+        return True
     finally:
         wb.close()
 
@@ -322,6 +331,11 @@ def plan_vkcf_block(w: Writes, state: dict, m1: dict, m2: dict, we_liste: list, 
         put("bewirtschaftungsquote_schaetzung", row, miete.get("bewirtschaftungsquote_schaetzung"), "modul_5.we_mieten[].bewirtschaftungsquote_schaetzung")
         put("hausgeld_nicht_umlagefaehig", row, miete.get("hausgeld_nicht_umlagefaehig_eur_pro_monat"), "modul_5.we_mieten[].hausgeld_nicht_umlagefaehig_eur_pro_monat")
         put("hausgeld_ruecklage", row, miete.get("hausgeld_ruecklage_eur_pro_monat"), "modul_5.we_mieten[].hausgeld_ruecklage_eur_pro_monat")
+    # Eingabe-Weg (Layout 3): Template-Vorgabe ausdruecklich setzen, damit die Werte-Vorschau sie zeigt; Andre schaltet in der Excel um
+    for key in ("eingabe_modus", "ziel_rendite", "ziel_cf"):
+        p = next((x for x in V.PARAMETER if x.key == key), None)
+        if p is not None:
+            w.set(sheet, vt.param_cell(key), p.wert, f"Template-Vorgabe Eingabe-Weg ({p.label}) - in der Excel umschaltbar")
     # Parameterblock: Grundstueck, BRW, MEA-Nenner aus Modul 2 (Zellen laut Vertrag, Quelle als Kommentar)
     gq = m2.get("grundstuecksflaeche_quelle") or {}
     gq_text = ", ".join(str(gq[k]) for k in ("quelle", "dokument", "flurstueck", "konfidenz") if gq.get(k)) or None

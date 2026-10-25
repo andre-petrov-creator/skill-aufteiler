@@ -239,6 +239,7 @@ def verify_contract(path: Path, export: bool = False) -> None:
                   "Fuellung ohne end_color wird in Excel nicht angezeigt (ERR-2026-09-02)")
     for dv in ws.data_validations.dataValidation:
         check(f"DV {dv.sqref} allow_blank", bool(dv.allow_blank), "ohne allow_blank kippt 'leer = Standard'")
+        check(f"DV {dv.sqref} showErrorMessage", bool(dv.showErrorMessage), "ohne Fehlermeldung nimmt Excel jede Eingabe still an")
     for m in V.MITZIEHER:
         row = m.row if m.row is not None else LAY.sum_row
         prefix = f"'{V.SHEET}'!" if m.sheet != V.SHEET else ""
