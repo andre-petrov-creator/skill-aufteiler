@@ -78,7 +78,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("json")
     ap.add_argument("--out", default=str(Path(__file__).parent / "vkcf_vertrag_daten.py"))
+    ap.add_argument("--legacy-ueberschreiben", action="store_true",
+                    help="vkcf_vertrag_daten.py wird seit Layout 3 von Hand gepflegt - nur fuer bewusste Rekonstruktion von Layout 2")
     args = ap.parse_args()
+    if Path(args.out).resolve() == (Path(__file__).parent / "vkcf_vertrag_daten.py").resolve() and not args.legacy_ueberschreiben:
+        raise SystemExit("Abbruch: vkcf_vertrag_daten.py ist seit Layout 3 (2026-10-25) handgepflegt; ein Import wuerde es mit Layout 2 "
+                         "ueberschreiben. --out in eine andere Datei oder --legacy-ueberschreiben.")
     v = json.loads(Path(args.json).read_text(encoding="utf-8"))
     sp = v["spalten"]
     letters = [s["spalte"] for s in sp]

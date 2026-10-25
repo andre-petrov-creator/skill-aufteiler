@@ -1,9 +1,9 @@
 """Handgepflegter Teil des Spaltenvertrags "Verkauf Cashflow" (Vorwaertskalkulation je Wohnung).
 
-Quelle: Revision final r2 (scratchpad/revision_final_r2.json, Abschnitte mitzieher/formatierung) - die
-Freitext-Eintraege dort sind hier in Dataclasses uebersetzt. Formeln mit Platzhaltern (siehe vkcf_vertrag):
+Urspruenglich aus Revision final r2 (Abschnitte mitzieher/formatierung) uebersetzt; seit Layout 3
+(2026-10-25, Eingabe-Wege) direkt hier gepflegt. Formeln mit Platzhaltern (siehe vkcf_vertrag):
 {key} Spalte der Zeile, {key$@sum} Summenzelle absolut, {p:key} Parameter, {MIETER!F} Fremdblatt mit Offset.
-Wird von vkcf_vertrag_daten.py (generiert) importiert.
+Wird von vkcf_vertrag_daten.py importiert.
 """
 import vkcf_vertrag as V  # zur Importzeit teilweise initialisiert - Dataclasses und Konstanten sind bereits definiert
 
@@ -25,8 +25,8 @@ for r in ROWS:
         # Zahl (0 ohne Garage), nie "" - die Bestandsformel W = U+V rechnet sonst #WERT! (Excel-COM-Befund 2026-09-11)
         V.Mitzieher("VERKAUFSMATRIX", f"V{vm}", 'IF(NOT(ISNUMBER({MIETER!F})),"",N({garage_preis})+N({stellplatz_preis}))', r,
                     "Spiegel aus Verkauf Cashflow Q+R (vorher Handeingabe); 0 ohne Garage/Stellplatz"),
-        V.Mitzieher("VERKAUFSMATRIX", f"X{vm}", 'IF(ISNUMBER({individueller_aufschlag}),{individueller_aufschlag},"")', r,
-                    "Spiegel aus Verkauf Cashflow O (vorher Handeingabe)"),
+        V.Mitzieher("VERKAUFSMATRIX", f"X{vm}", 'IF(AND(ISNUMBER({individueller_aufschlag}),LEFT({preis_quelle},6)="Regler"),{individueller_aufschlag},"")', r,
+                    "Spiegel aus Verkauf Cashflow (Auf-/Abschlag); nur wenn der Regler den Preis setzt - im Rendite-/Cashflow-Weg wirkt er nicht"),
         V.Mitzieher("VERKAUFSMATRIX", f"AA{vm}", 'IF(ISNUMBER({bruttomietrendite}),{bruttomietrendite},"")', r,
                     "Rendite auf MEIN PREIS = Bruttomietrendite aus Verkauf Cashflow"),
         V.Mitzieher("MIETER", f"K{mi}", 'IF(AND(NOT(ISNUMBER({garage_miete})),NOT(ISNUMBER({stellplatz_miete}))),"",N({garage_miete})+N({stellplatz_miete}))', r,
@@ -50,20 +50,12 @@ for vm in VM_ROWS:
                     None, "Etagen-Abschlag: 0 statt \"\" bei unbekannter Schreibweise (Modul 6 schreibt EG/1.OG/3.OG)"),
     ]
 
-# Alt-Kontrollsektionen ab Zeile 41 (bleiben an Ort und Stelle; Bezuege auf Parameter/Summen ueber Schluessel)
+# Alt-Kontrollsektionen ab Zeile 41 (bleiben an Ort und Stelle; Bezuege auf Parameter/Summen ueber Schluessel).
+# Layout 3: Zins-Sensitivitaet A53:E59 und Text-Ampel C50 entfallen (V.ENTFERNTE_BEREICHE).
 MITZIEHER += [
     V.Mitzieher(V.SHEET, "C44", "{abgabe_wohnung@sum}", None, "VK Wohnungen Vorwaerts-Ansatz = Summe Abgabepreis Wohnungen (vorher Rueckrechnung)"),
     V.Mitzieher(V.SHEET, "C70", "{p:bewirt_quote_alt}", None, "Quote-Spiegel (Bestand =C8)"),
-    V.Mitzieher(V.SHEET, "D56", 'IFERROR(({p:k_faktor_alt}/C56)*{max_tragbar_fin$@sum}+{p:kp_assets_gesamt},"")', None, "Sensitivitaet auf Summe max. tragbar (109,3 %)"),
-    V.Mitzieher(V.SHEET, "D57", 'IFERROR({max_tragbar_fin$@sum}+{p:kp_assets_gesamt},"")', None, "Basis-Szenario"),
-    V.Mitzieher(V.SHEET, "D58", 'IFERROR(({p:k_faktor_alt}/C58)*{max_tragbar_fin$@sum}+{p:kp_assets_gesamt},"")', None, ""),
-    V.Mitzieher(V.SHEET, "D59", 'IFERROR(({p:k_faktor_alt}/C59)*{max_tragbar_fin$@sum}+{p:kp_assets_gesamt},"")', None, ""),
 ]
-for r, shift in ((56, "-0.005"), (57, "0"), (58, "0.005"), (59, "0.01")):
-    MITZIEHER.append(V.Mitzieher(V.SHEET, f"B{r}", f"{{p:zins}}+{shift}", None, "Zins-Szenario (Bestand =$C$5+x)"))
-    MITZIEHER.append(V.Mitzieher(V.SHEET, f"C{r}",
-                                 f"{{p:loan_faktor_vorwaerts}}*((B{r}+{{p:tilgung}})-{{p:steuersatz}}*B{r}-{{p:steuersatz}}*{{p:gebaeude_anteil_std}}*{{p:afa_satz_std}}*(1+{{p:knk}}))/12",
-                                 None, "k-Faktor der Sensitivitaet: Loan-Faktor der Vorwaertsrechnung, AfA-Term mit (1+KNK) - identisch zu k global"))
 for r in range(77, 88):
     MITZIEHER += [
         V.Mitzieher(V.SHEET, f"D{r}", f'IF(OR(NOT(ISNUMBER({{p:nkm_jahr}})),{{p:nkm_jahr}}=0),"",($C$66+C{r})/{{p:nkm_jahr}})', None,
@@ -76,54 +68,60 @@ for r in range(77, 88):
 LABELS: list = [
     V.Label(V.SHEET, "A41", "VERGLEICH: MARKT-ANSATZ vs. VORWAERTS-ANSATZ"),
     V.Label(V.SHEET, "A44", "VK Wohnungen VORWAERTS-ANSATZ (Abgabepreis inkl. Aufschlag, ohne Garage/Provision)"),
-    V.Label(V.SHEET, "A53", "SENSITIVITAET: SUMME MAX. TRAGBAR (109,3 %) BEI ZINS-SHIFT (Alt-Kontrolle, globale Annahmen)"),
     V.Label(V.SHEET, "A61", "BEWIRTSCHAFTUNG (nicht umlagefaehig) - Standard fuer Wohnungen ohne Hausgeld-Angabe; speist die Alt-Kontrolle"),
     V.Label(V.SHEET, "A73", "RUECKLAGEN-TOPF -> Quote & max. Verkaufspreis (Alt-Kontrolle, globale Annahmen)"),
     V.Label("VERKAUFSMATRIX", "V5", "PREIS GARAGE /\nSTELLPLATZ", "Spiegel aus Verkauf Cashflow Q+R - dort eintragen"),
-    V.Label("VERKAUFSMATRIX", "X5", "INDIVIDUELLER\nAUF-/ABSCHLAG", "Eingabe im Reiter Verkauf Cashflow, Spalte O"),
-    V.Label("VERKAUFSMATRIX", "Y5", "MEIN\nVERKAUFSPREIS", "= gesetzter Abgabepreis gesamt aus Verkauf Cashflow (Spalte S)"),
-    V.Label("MIETER", "K7", "Garagen-/Stellpl.-\nmiete", "Formel-Spiegel aus Verkauf Cashflow AL+AM - dort eintragen"),
+    V.Label("VERKAUFSMATRIX", "X5", "INDIVIDUELLER\nAUF-/ABSCHLAG", "Eingabe im Reiter Verkauf Cashflow (Auf-/Abschlag); wirkt nur im Regler-Weg"),
+    V.Label("VERKAUFSMATRIX", "Y5", "MEIN\nVERKAUFSPREIS", "= Abgabepreis gesamt aus Verkauf Cashflow - je nach Eingabe-Weg aus Regler, Ziel-Rendite oder Ziel-Cashflow"),
+    V.Label("MIETER", "K7", "Garagen-/Stellpl.-\nmiete", "Formel-Spiegel aus Verkauf Cashflow (Miete Garage + Stellplatz) - dort eintragen"),
 ]
 
-# Legende rechts neben den Parametern (eine Zeile je Eintrag)
+# Legende links unten unter dem Kaeuferprofil (Farbfeld + Stichwort | Erklaerung)
 LEGENDE: list = [
-    "Hellgelb = Eingabe je Wohnung; leer = Standard aus dem Käuferprofil greift",
-    "Ampel: Grün = Preis trägt, Gelb = knapp (Toleranz), Rot = über max. tragbar oder Datenfehler, Grau = Angabe fehlt",
-    "Mint = Standard-Rückfall aktiv (Feld leer); Orange = Ist-Miete manuell angehoben / Eigenkapital trotz Vollfinanzierung",
-    "Rücklage mindert nur den Cashflow, nicht die Steuer (BFH IX R 19/24); Hausgeld ohne Wirtschaftsplan = Verwaltung + Rücklage-Standard",
-    "Kontrollspalten: max. tragbar = (Ertrag nach Steuer ohne Finanzierung − Ziel-CF + Garage/Stellplatz netto) / k",
-    "k = Loan-Faktor × [(Zins + Tilgung) − s × Zins − s × (1 + KNK) × AfA × Grenz-Gebäudeanteil] / 12",
-    "Hilfsspalten sind per Gruppierung eingeklappt — Schaltfläche + über der Tabelle",
+    V.LegendenEintrag("Eingabe", V.FARBE_EINGABE, "beschreibbares Feld - je Wohnung in der Tabelle oder oben im Parameterblock"),
+    V.LegendenEintrag("Annahme", V.FARBE_EINGABE, "Eingabefeld je Wohnung leer = Standardwert aus dem Parameterblock greift (Provision, Hausgeld, AfA, Gebäudeanteil ...)"),
+    V.LegendenEintrag("Ergebnis", None, "Formel - nicht überschreiben; Hilfsspalten über die Schaltfläche + über der Tabelle aufklappen"),
+    V.LegendenEintrag("Aktiv", V.FARBE_AKTIV, "bestimmt gerade den Preis (Eingabe-Weg rechts); grau = wirkt im gewählten Weg nicht"),
+    V.LegendenEintrag("Hinweis", V.CF_ORANGE, "orange = Rückfall auf den Regler (keine Miete/kein Ziel) oder Miete angehoben; rot = Datenfehler"),
 ]
 
 # ---------------------------------------------------------------- Gruppierung (Outline, eingeklappt)
 GRUPPEN: list = [
     ("mea_anteil", "mea_anteil"), ("abgabepreis_qm", "beurkundet"), ("miete_eur_qm", "miete_eur_qm"), ("soll_vorschlag", "soll_vorschlag"),
     ("bewirt_quote", "bewirt_1pp_preis_eur"), ("gebaeude_anteil_brw", "gebaeude_anteil_brw"), ("gebaeude_anteil_quelle", "gebaeude_anteil_quelle"),
-    ("afa_satz_eff", "afa_satz_eff"), ("ruecklage_nachholbar", "ruecklage_nachholbar"), ("nettoertrag_vor_fin", "k_faktor_fin"),
+    ("afa_satz_eff", "afa_satz_eff"), ("ruecklage_nachholbar", "ruecklage_nachholbar"), ("nettoertrag_vor_fin", "kaufpreis_ziel"),
 ]
 
 # ---------------------------------------------------------------- Bedingte Formatierung (helle Toene, je Regel start_color = end_color)
-CF_REGELN: list = []
-for key in ("provision_pct", "bewirtschaftungsquote_schaetzung", "hausgeld_nicht_umlagefaehig", "hausgeld_ruecklage", "gebaeude_anteil", "afa_satz"):
-    CF_REGELN.append(V.CfRegel((key,), f'AND({{wohnflaeche_m2$}}<>"",{{{key}}}="")', V.CF_MINT, "Eingabe mit Standard-Rueckfall: mint solange leer"))
-CF_REGELN += [
-    V.CfRegel(("abgabe_eur_qm_regler",), 'AND({wohnflaeche_m2$}<>"",{abgabe_eur_qm_regler}="")', V.CF_GELB, "Pflicht-Eingabe ohne Standard: gelb solange leer"),
-    V.CfRegel(("kaltmiete_override",), '{kaltmiete_override}<>""', V.CF_ORANGE, "Override sichtbar"),
+# Eingabe-Weg: 1 (oder leer) = Regler, 2 = Bruttomietrendite, 3 = Cashflow nach Steuern
+WEG_REGLER = 'AND(N({p:eingabe_modus})<>2,N({p:eingabe_modus})<>3)'
+WEG_RENDITE = 'N({p:eingabe_modus})=2'
+WEG_CF = 'N({p:eingabe_modus})=3'
+CF_REGELN: list = [
+    V.CfRegel(("abgabe_eur_qm_regler",), f'AND({{wohnflaeche_m2$}}<>"",{WEG_REGLER})', V.FARBE_AKTIV, "Regler bestimmt den Preis", fett=True),
+    V.CfRegel(("abgabe_eur_qm_regler", "individueller_aufschlag"), f'AND({{wohnflaeche_m2$}}<>"",NOT({WEG_REGLER}))', V.FARBE_INAKTIV, "wirkt im Rendite-/Cashflow-Weg nicht", schrift=V.SCHRIFT_INAKTIV),
+    V.CfRegel(("ziel_rendite_override",), f'AND({{wohnflaeche_m2$}}<>"",{WEG_RENDITE})', V.FARBE_AKTIV, "Ziel-Rendite je WE bestimmt den Preis", fett=True),
+    V.CfRegel(("ziel_rendite_override",), f'AND({{wohnflaeche_m2$}}<>"",NOT({WEG_RENDITE}))', V.FARBE_INAKTIV, "wirkt nur im Rendite-Weg", schrift=V.SCHRIFT_INAKTIV),
+    V.CfRegel(("ziel_cf_override",), f'AND({{wohnflaeche_m2$}}<>"",{WEG_CF})', V.FARBE_AKTIV, "Ziel-Cashflow je WE bestimmt den Preis", fett=True),
+    V.CfRegel(("ziel_cf_override",), f'AND({{wohnflaeche_m2$}}<>"",NOT({WEG_CF}))', V.FARBE_INAKTIV, "wirkt nur im Cashflow-Weg", schrift=V.SCHRIFT_INAKTIV),
+    V.CfRegel((), "TRUE", V.FARBE_AKTIV, "Schalter Eingabe-Weg", param_keys=("eingabe_modus",), fett=True),
+    V.CfRegel((), WEG_RENDITE, V.FARBE_AKTIV, "globale Ziel-Rendite aktiv", param_keys=("ziel_rendite",), fett=True),
+    V.CfRegel((), f"NOT({WEG_RENDITE})", V.FARBE_INAKTIV, "globale Ziel-Rendite wirkt nicht", param_keys=("ziel_rendite",), schrift=V.SCHRIFT_INAKTIV),
+    V.CfRegel((), WEG_CF, V.FARBE_AKTIV, "globaler Ziel-Cashflow aktiv", param_keys=("ziel_cf",), fett=True),
+    V.CfRegel((), f"NOT({WEG_CF})", V.FARBE_INAKTIV, "globaler Ziel-Cashflow wirkt nicht", param_keys=("ziel_cf",), schrift=V.SCHRIFT_INAKTIV),
+    V.CfRegel(("preis_quelle",), 'OR({preis_quelle}="Regler (Rückfall)",{preis_quelle}="kein Preis")', V.CF_ORANGE, "Rueckfall auf den Regler bzw. kein Preis"),
     V.CfRegel(("kaltmiete",), 'AND(ISNUMBER({kaltmiete_override}),{kaltmiete_override}>{MIETER!J})', V.CF_ORANGE, "Ist-Miete manuell angehoben"),
     V.CfRegel(("bewirtschaftungsquote_schaetzung",), 'AND({wohnflaeche_m2$}<>"",{bewirtschaftungsquote_schaetzung}<>"",{hausgeld_nicht_umlagefaehig}<>"")', V.CF_WARNROT, "zwei Hausgeld-Quellen"),
     V.CfRegel(("gebaeude_anteil_effektiv",), 'AND(ISNUMBER({gebaeude_anteil_effektiv}),{gebaeude_anteil_effektiv}<=0)', V.CF_WARNROT, "Bodenwert >= Kaufpreis"),
-    V.CfRegel(("delta_regler_zu_max",), 'AND(ISNUMBER({delta_regler_zu_max}),{delta_regler_zu_max}>0)', V.CF_WARNROT, "Regler ueber max. tragbar"),
-    V.CfRegel(("eigenkapital",), 'AND(ISNUMBER({eigenkapital}),{eigenkapital}>0,{p:finanzierungsfall}=2)', V.CF_ORANGE, "Eigenkapital trotz 'alles finanziert'"),
+    V.CfRegel(("eigenkapital",), 'AND(ISNUMBER({eigenkapital}),{eigenkapital}>0.005,{p:finanzierungsfall}=2)', V.CF_ORANGE, "Eigenkapital trotz 'alles finanziert'"),
 ]
-AMPEL = {"GRUE": V.AMPEL_GRUEN, "GELB": V.AMPEL_GELB, "ROT:": V.AMPEL_ROT, "GRAU": V.AMPEL_GRAU}
-for key in ("ampel_100", "ampel_fin"):
-    for pref, farbe in AMPEL.items():
-        CF_REGELN.append(V.CfRegel((key,), f'LEFT({{{key}}},4)="{pref}"', farbe, f"Ampel {pref.strip(':')}"))
 
 # ---------------------------------------------------------------- Datenpruefung (allow_blank ueberall: leer = Standard)
 DV_REGELN: list = [
     V.DvRegel(("leerstand",), "list", formula1='"ja,nein"'),
+    V.DvRegel((), "list", formula1='"1,2,3"', param_keys=("eingabe_modus",)),
+    V.DvRegel(("ziel_rendite_override",), "decimal", "between", "0.005", "0.5", param_keys=("ziel_rendite",)),
+    V.DvRegel(("ziel_cf_override",), "decimal", "between", "-10000", "10000", param_keys=("ziel_cf",)),
     V.DvRegel(("abgabe_eur_qm_regler",), "decimal", "between", "0", "20000"),
     V.DvRegel(("individueller_aufschlag",), "decimal", "between", "-100000", "100000"),
     V.DvRegel(("provision_pct",), "decimal", "between", "0", "0.15", param_keys=("provision_std",)),
@@ -137,7 +135,6 @@ DV_REGELN: list = [
     V.DvRegel((), "decimal", "greaterThan", "0", param_keys=("grundstueck_qm", "brw")),
     V.DvRegel((), "whole", "greaterThan", "0", param_keys=("mea_nenner",)),
     V.DvRegel((), "decimal", "between", "0", "0.05", param_keys=("afa_garage", "afa_stellplatz")),
-    V.DvRegel((), "decimal", "between", "0", "0.5", param_keys=("ampel_toleranz",)),
     V.DvRegel((), "whole", "between", "1", "120", param_keys=("sperrfrist_monate",)),
 ]
 

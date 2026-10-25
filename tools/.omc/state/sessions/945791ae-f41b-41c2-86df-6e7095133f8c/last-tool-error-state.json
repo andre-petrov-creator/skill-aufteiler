@@ -1,0 +1,7 @@
+{
+  "tool_name": "StructuredOutput",
+  "tool_input_preview": "{\"findings\":[{\"title\":\"Regler und Auf-/Abschlag sind in Rückfall-Zeilen grau („wirkt nicht“), obwohl sie dort den Preis setzen\",\"file\":\"Immobilien/Aufteiler/tools/vkcf_vertrag_hand.py:102\",\"scenario\":...",
+  "error": "Output does not match required schema: /findings/0: must have required property 'severity'",
+  "timestamp": "2026-10-25T09:22:25.862Z",
+  "retry_count": 1
+}

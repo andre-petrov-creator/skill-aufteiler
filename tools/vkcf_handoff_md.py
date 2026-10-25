@@ -52,7 +52,7 @@ def main() -> int:
     for sp in vt.spalten:
         if sp.block != block:
             block = sp.block
-            lines += ["", f"### Block {block}", "", "| Sp. | Schlüssel | Kopf | Typ | Formel (Zeile 18) / Eingabe | Summe (38) | Format | CRM-Feld | Gruppe |", "|---|---|---|---|---|---|---|---|---|"]
+            lines += ["", f"### Block {block}", "", f"| Sp. | Schlüssel | Kopf | Typ | Formel (Zeile {L.first}) / Eingabe | Summe ({L.sum_row}) | Format | CRM-Feld | Gruppe |", "|---|---|---|---|---|---|---|---|---|"]
         if sp.typ == "formel":
             f = f"`={md_escape(sp.formel)}`"
         elif sp.typ == "konstante":
@@ -73,8 +73,12 @@ def main() -> int:
     lines += ["", "## Gruppierung, Formatierung, Prüfung", "",
               f"- Fixierung rechts von `{V.FREEZE_AFTER_KEY}` (Spalte {vt.letter[V.FREEZE_AFTER_KEY]}) und der Kopfzeilen 1–{L.header_row}.",
               "- Eingeklappte Hilfsspalten (Outline-Ebene 1): " + ", ".join(f"{vt.letter[a]}" + (f":{vt.letter[b]}" if a != b else "") for a, b in V.GRUPPEN) + ".",
-              f"- {len(V.CF_REGELN)} Regeln bedingter Formatierung (mint = Eingabe mit Standard-Rückfall, gelb = Pflicht-Eingabe, orange = Override, rot = Warnung, Ampeln vierfarbig), "
-              f"{len(V.DV_REGELN)} Datenprüfungen (alle `allow_blank`).",
+              f"- {len(V.CF_REGELN)} Regeln bedingter Formatierung (grün = aktiver Eingabe-Weg, grau = wirkt im gewählten Weg nicht, "
+              "orange = Rückfall auf den Regler / Miete angehoben, rot = Datenfehler); Eingabefelder statisch "
+              f"`{V.FARBE_EINGABE}`. {len(V.DV_REGELN)} Datenprüfungen (alle `allow_blank`).",
+              f"- Legende links unten ab Zeile {V.LEGENDE_FIRST_ROW}: " + " · ".join(f"{e.stichwort} = {md_escape(e.text)}" for e in V.LEGENDE) + ".",
+              "- Eingabe-Weg (`eingabe_modus`): 1 = Regler €/m², 2 = Ziel-Bruttomietrendite, 3 = Ziel-Cashflow nach Steuern mit Subvention; "
+              "Preis aus `kaufpreis_ziel`, Zeilen ohne Miete fallen auf den Regler zurück (`preis_quelle`).",
               "- Abnahme: `python tools/verify_vkcf_vorwaertskalkulation.py --file <xlsx> --source <original> --calc` "
               "(Vertrag Zelle für Zelle mit Rücksubstitution Buchstabe→Schlüssel, Roundtrip gegen das Original, Rechenabnahme mit `formulas` gegen `tools/fixtures/vkcf_referenz.json`).",
               ""]

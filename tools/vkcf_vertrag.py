@@ -20,6 +20,10 @@ Platzhalter:
 Layout seit 2026-09-11 (Andre): Tabelle ab Zeile 1 (Blocknamen), Zeile 2 Spaltenkoepfe, Wohnungen
 ab Zeile 3, Summenzeile 23; Parameterbloecke und Alt-Kontrollsektionen darunter. Fixiert werden nur
 die zwei Kopfzeilen und die Stammspalten bis Wohnflaeche.
+
+Layout 3 (Andre, 2026-10-25, Spec docs/superpowers/specs/2026-10-25-vkcf-eingabe-modi-design.md):
+Eingabe-Weg (Regler / Bruttomietrendite / Cashflow nach Steuern) als eigener Parameterblock rechts,
+keine Kontrollspalten und Ampeln mehr, Legende links unter dem Kaeuferprofil, Loan-Faktor 1 + KNK.
 """
 from __future__ import annotations
 
@@ -73,10 +77,15 @@ LAYOUT_LEGACY = Layout(block_row=16, header_row=17, first=18, last=37, sum_row=3
 
 # Parameter-Gruppen und ihre Spalten im Block unter der Tabelle (Label | Wert)
 PARAM_GRUPPEN = {
-    "kaeufer": {"label_col": "A", "label_merge_to": "B", "wert_col": "C", "titel": "KÄUFER-PROFIL (Standard für alle Wohnungen — je Wohnung überschreibbar)"},
+    "kaeufer": {"label_col": "A", "label_merge_to": "B", "wert_col": "C", "titel": "KÄUFER-PROFIL (Standard für alle Wohnungen)"},
     "objekt": {"label_col": "E", "label_merge_to": "G", "wert_col": "H", "titel": "OBJEKT, ASSETS, STEUERUNG"},
+    "weg": {"label_col": "J", "label_merge_to": "N", "wert_col": "O", "titel": "EINGABE-WEG (bestimmt den Verkaufspreis)"},
 }
-LEGENDE_COL = "J"          # Legende rechts neben den Parametern (J:N gemerged, ab param_first_row)
+# Legende links unten unter dem Kaeuferprofil: Farbfeld mit Stichwort in A, Erklaerung B:N gemerged
+# (Spaltenbreiten kommen aus dem Datenblock; B:H allein schneidet die Texte ab - Sichtpruefung 2026-10-25)
+LEGENDE_FIRST_ROW = 36
+LEGENDE_COL = "A"
+LEGENDE_TEXT_COL = "B"
 LEGENDE_MERGE_TO = "N"
 
 # ---------------------------------------------------------------- Zahlenformate (Template-Schreibweise, ohne rotes Minus)
@@ -146,6 +155,16 @@ class CfRegel:
     formel: str                    # Platzhalter, relativ zur ersten Datenzeile
     farbe: str                     # ARGB, wird als start_color UND end_color gesetzt
     zweck: str = ""
+    param_keys: tuple[str, ...] = ()   # zusaetzliche Parameterzellen (ueber Schluessel)
+    schrift: str | None = None         # ARGB der Schrift (z.B. grau = wirkt nicht)
+    fett: bool = False
+
+
+@dataclass(frozen=True)
+class LegendenEintrag:
+    stichwort: str
+    farbe: str | None              # Fuellung des Farbfelds (None = ohne)
+    text: str
 
 
 @dataclass(frozen=True)
@@ -306,7 +325,7 @@ class Vertrag:
 # ---------------------------------------------------------------- Konstanten des Reiters
 VERSION_MARKER = "AUFTEILER_TPL_V2"
 LAYOUT_MARKER = "AUFTEILER_TPL_LAYOUT"   # Defined Name mit Layout-Version als Wert
-LAYOUT_VERSION = 2
+LAYOUT_VERSION = 3
 SHEET = "Verkauf Cashflow"
 FREEZE_AFTER_KEY = "wohnflaeche_m2"      # Fixierung rechts von dieser Spalte
 SUM_LABEL = "SUMME / Ø"
@@ -317,7 +336,11 @@ BLOCK_FARBEN = {
     "Stamm": "FFE7E6E6", "Preis": "FFDDEBF7", "Miete": "FFE2EFDA",
     "Bewirtschaftung": "FFFFF2CC", "Steuer": "FFE4DFEC", "Ergebnis": "FFFCE4D6",
 }
-FARBE_EINGABE = "FFFFFBE6"      # sehr helles Gelb
+# Eingabe = kraeftiges Hellgelb, eindeutig gegen alle Blockfarben (vorher FFFFFBE6, kaum von Weiss zu unterscheiden)
+FARBE_EINGABE = "FFFFE699"
+FARBE_AKTIV = "FFA9D08E"        # Eingabe, die gerade den Preis bestimmt (Eingabe-Weg)
+FARBE_INAKTIV = "FFEDEDED"      # Eingabe, die im gewaehlten Weg nicht wirkt
+SCHRIFT_INAKTIV = "FFA6A6A6"
 FARBE_ZEBRA = "FFF7F7F7"
 FARBE_SUMME = "FFEDEDED"
 FARBE_RAHMEN = "FFD9D9D9"
@@ -325,19 +348,21 @@ FARBE_PARAM_TITEL = "FFDDEBF7"
 FARBE_TEXT = "FF404040"
 SCHRIFT = "Calibri"
 
-# Ampel-/Warnfarben (Excel-Standard "Gut/Neutral/Schlecht")
-AMPEL_GRUEN, AMPEL_GELB, AMPEL_ROT, AMPEL_GRAU = "FFC6EFCE", "FFFFEB9C", "FFFFC7CE", "FFEDEDED"
-CF_MINT, CF_GELB, CF_ORANGE, CF_WARNROT = "FFE2EFDA", "FFFFF2CC", "FFFFE0B2", "FFFFC7CE"
+# Hinweis-/Warnfarben (Excel-Standard "Neutral/Schlecht")
+CF_ORANGE, CF_WARNROT = "FFFFE0B2", "FFFFC7CE"
 
 # Bestands-Sektionen unter dem Parameterblock (bleiben an Ort und Stelle)
-BESTAND_MERGES = ("A41:N41", "A53:N53")
+BESTAND_MERGES = ("A41:N41",)
+# Layout 3: Alt-Kontrollen, die mit Kontrollspalten und Ampel entfallen (Zins-Sensitivitaet auf
+# "max. tragbar", Text-Ampel "Empfehlung") - Migration leert die Bereiche und loest ihre Merges
+ENTFERNTE_BEREICHE = ("A50:C50", "A53:N59")
 
 # Werden aus vkcf_vertrag_daten / vkcf_vertrag_hand befuellt; leer = noch kein Vertrag.
 SPALTEN: list[Spalte] = []
 PARAMETER: list[Parameter] = []
 MITZIEHER: list[Mitzieher] = []
 LABELS: list[Label] = []
-LEGENDE: list[str] = []
+LEGENDE: list[LegendenEintrag] = []
 CF_REGELN: list[CfRegel] = []
 DV_REGELN: list[DvRegel] = []
 GRUPPEN: list[tuple[str, str]] = []
@@ -353,5 +378,5 @@ except ImportError:
 
 def vertrag(layout: Layout = LAYOUT) -> Vertrag:
     if not SPALTEN:
-        raise RuntimeError("SPALTEN ist leer - tools/vkcf_vertrag_daten.py fehlt (Generator: tools/vkcf_vertrag_import.py).")
+        raise RuntimeError("SPALTEN ist leer - tools/vkcf_vertrag_daten.py fehlt (seit Layout 3 handgepflegt, im Repo versioniert).")
     return Vertrag(SPALTEN, PARAMETER, layout)

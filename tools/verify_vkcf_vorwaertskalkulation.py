@@ -186,24 +186,52 @@ def verify_contract(path: Path, export: bool = False) -> None:
             mg = vt.param_label_merge(p.key)
             if mg:
                 check(f"Label-Merge {p.key}", mg in merges, mg)
-    for i, text in enumerate(V.LEGENDE):
-        r = LAY.param_first_row + i
-        check(f"Legende Zeile {r}", ws[f"{V.LEGENDE_COL}{r}"].value == text and f"{V.LEGENDE_COL}{r}:{V.LEGENDE_MERGE_TO}{r}" in merges)
+    for i, e in enumerate(V.LEGENDE):
+        r = V.LEGENDE_FIRST_ROW + i
+        sw = ws[f"{V.LEGENDE_COL}{r}"]
+        check(f"Legende Zeile {r}", sw.value == e.stichwort and ws[f"{V.LEGENDE_TEXT_COL}{r}"].value == e.text
+              and f"{V.LEGENDE_TEXT_COL}{r}:{V.LEGENDE_MERGE_TO}{r}" in merges, repr(sw.value))
+        farbe = sw.fill.start_color.rgb if sw.fill and sw.fill.fill_type == "solid" else None
+        check(f"Legende Zeile {r} Farbfeld", farbe == e.farbe, f"{farbe} != {e.farbe}")
+    # Eingabezellen tragen die Eingabefarbe (statisch; bedingte Regeln faerben nur Eingabe-Weg-Zellen um)
+    for sp in vt.spalten:
+        if sp.typ == "eingabe":
+            c = ws[f"{vt.letter[sp.schluessel]}{LAY.first}"]
+            check(f"Eingabefarbe {sp.schluessel}", c.fill.fill_type == "solid" and c.fill.start_color.rgb == V.FARBE_EINGABE, str(c.fill.start_color.rgb))
+    for p in vt.parameter:
+        if p.eingabe and p.gruppe != "fest":
+            c = ws[vt.param_cell(p.key)]
+            check(f"Eingabefarbe Parameter {p.key}", c.fill.fill_type == "solid" and c.fill.start_color.rgb == V.FARBE_EINGABE, str(c.fill.start_color.rgb))
+    from openpyxl.utils.cell import range_boundaries
+    for bereich in V.ENTFERNTE_BEREICHE:
+        c1, r1, c2, r2 = range_boundaries(bereich)
+        rest = [ws.cell(row=r, column=c).coordinate for r in range(r1, r2 + 1) for c in range(c1, c2 + 1) if ws.cell(row=r, column=c).value is not None]
+        check(f"entfernter Bereich {bereich} leer", not rest, ", ".join(rest[:6]))
 
     # Layout
     freeze_col = get_column_letter([s.schluessel for s in vt.spalten].index(V.FREEZE_AFTER_KEY) + 2)
     check("Fixierung (2 Kopfzeilen + Stamm)", ws.freeze_panes == f"{freeze_col}{LAY.first}", str(ws.freeze_panes))
+    keys = [s.schluessel for s in vt.spalten]
+    gruppiert = set()
     for first_key, last_key in V.GRUPPEN:
+        gruppiert |= set(keys[keys.index(first_key):keys.index(last_key) + 1])
         for key in (first_key, last_key):
             d = ws.column_dimensions[vt.letter[key]]
             check(f"Gruppierung {key}", d.outline_level >= 1 and d.hidden, f"level={d.outline_level} hidden={d.hidden}")
+    for sp in vt.spalten:
+        check(f"Gruppenvertrag {sp.schluessel}", sp.gruppiert == (sp.schluessel in gruppiert), f"gruppiert={sp.gruppiert}, in GRUPPEN={sp.schluessel in gruppiert}")
+        if sp.schluessel not in gruppiert:
+            d = ws.column_dimensions[vt.letter[sp.schluessel]]
+            check(f"sichtbar {vt.letter[sp.schluessel]} ({sp.schluessel})", not d.hidden and not d.outline_level, f"level={d.outline_level} hidden={d.hidden}")
     xml = _sheet_xml(path, V.SHEET)
     check("sheetFormatPr outlineLevelCol=1 (Gruppierungs-Schaltflaechen)", 'outlineLevelCol="1"' in xml, re.search(r"<sheetFormatPr[^>]*/?>", xml).group(0))
     for rng in V.BESTAND_MERGES:
         check(f"Bestands-Merge {rng}", rng in merges)
-    alt = [m for m in merges if int(re.search(r"(\d+)", m).group(1)) <= LAY.sum_row and not m.startswith(("A", "G", "L", "AG", "AW", "BE", "BS"))]
     n_cf = sum(len(r.rules) for r in ws.conditional_formatting)
-    check("CF-Regeln vorhanden", n_cf >= sum(len(r.bereich_keys) for r in V.CF_REGELN), str(n_cf))
+    soll_cf = sum(len(r.bereich_keys) + len(r.param_keys) for r in V.CF_REGELN)
+    check("CF-Regeln genau laut Vertrag (keine liegengebliebenen)", n_cf == soll_cf, f"{n_cf} != {soll_cf}")
+    n_dv = len(ws.data_validations.dataValidation)
+    check("Datenpruefungen genau laut Vertrag", n_dv == len(V.DV_REGELN), f"{n_dv} != {len(V.DV_REGELN)}")
     for r in ws.conditional_formatting:
         for rule in r.rules:
             f = rule.dxf.fill if rule.dxf else None

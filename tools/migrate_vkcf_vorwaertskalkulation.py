@@ -8,7 +8,9 @@ Ohne --apply wird NIE das Template angefasst: das Ergebnis landet in --target
 template/backup/ angelegt, dann die Zieldatei ueber eine Temp-Datei atomar ersetzt.
 
 Layout 2 (Andre, 2026-09-11): Zeile 1 Blocknamen, Zeile 2 Spaltenkoepfe, Wohnungen ab Zeile 3, Summe 23,
-darunter Parameterbloecke (Kaeuferprofil | Objekt/Assets | Legende) und die Alt-Kontrollsektionen ab 41.
+darunter Parameterbloecke (Kaeuferprofil | Objekt/Assets) und die Alt-Kontrollsektionen ab 41.
+Layout 3 (2026-10-25): dritter Parameterblock EINGABE-WEG rechts, Legende links unten (Zeile 36-40),
+Zins-Sensitivitaet und Text-Ampel unterhalb von Zeile 40 werden geleert (V.ENTFERNTE_BEREICHE).
 Fixiert: zwei Kopfzeilen + Stammspalten bis Wohnflaeche. Design hell und ruhig (Pastellbloecke, Zebra).
 Alle Adressen kommen aus tools/vkcf_vertrag.py; zweiter Lauf = identisches Ergebnis (Idempotenz).
 """
@@ -96,6 +98,26 @@ def clear_area(ws, vt: V.Vertrag) -> None:
         d = ws.column_dimensions[get_column_letter(col)]
         d.outline_level = 0
         d.hidden = False
+    clear_entfernte_bereiche(ws)
+
+
+def clear_entfernte_bereiche(ws) -> None:
+    """Alt-Kontrollen unterhalb von Zeile 40, die mit Kontrollspalten/Ampel entfallen (Layout 3)."""
+    from openpyxl.utils.cell import range_boundaries
+    for bereich in V.ENTFERNTE_BEREICHE:
+        c1, r1, c2, r2 = range_boundaries(bereich)
+        for rng in list(ws.merged_cells.ranges):
+            if rng.min_row <= r2 and rng.max_row >= r1 and rng.min_col <= c2 and rng.max_col >= c1:
+                ws.unmerge_cells(str(rng))
+        for row in range(r1, r2 + 1):
+            for col in range(c1, c2 + 1):
+                c = ws.cell(row=row, column=col)
+                c.value = None
+                c.comment = None
+                c.number_format = "General"
+                c.fill = NO_FILL
+                c.border = Border()
+                c.font = font()
 
 
 # ---------------------------------------------------------------- Datenblock
@@ -186,20 +208,21 @@ def write_parameter(ws, vt: V.Vertrag) -> None:
         c.comment = Comment(p.kommentar, "Aufteiler-Skill") if p.kommentar else None
         if p.gruppe != "fest":
             ws.row_dimensions[int(cell[len(PARAM_WERT_COL(p.gruppe)):])].height = 24
-    # Legende rechts daneben
-    for i, text in enumerate(V.LEGENDE):
-        r = LAY.param_first_row + i
-        ws.merge_cells(f"{V.LEGENDE_COL}{r}:{V.LEGENDE_MERGE_TO}{r}")
-        c = ws[f"{V.LEGENDE_COL}{r}"]
-        c.value = text
-        c.font = font(9, i == 0)
-        c.alignment = Alignment(vertical="center", wrap_text=True)
-    if V.LEGENDE:
-        ws.merge_cells(f"{V.LEGENDE_COL}{r0}:{V.LEGENDE_MERGE_TO}{r0}")
-        t = ws[f"{V.LEGENDE_COL}{r0}"]
-        t.value = "LEGENDE"
-        t.fill = fill(V.FARBE_PARAM_TITEL)
-        t.font = font(10, True)
+    # Legende links unten: Farbfeld mit Stichwort | Erklaerung
+    for i, e in enumerate(V.LEGENDE):
+        r = V.LEGENDE_FIRST_ROW + i
+        sw = ws[f"{V.LEGENDE_COL}{r}"]
+        sw.value = e.stichwort
+        sw.fill = fill(e.farbe) if e.farbe else NO_FILL
+        sw.font = font(9, True, "FF1F4E79" if e.farbe == V.FARBE_EINGABE else V.FARBE_TEXT)
+        sw.border = BORDER
+        sw.alignment = Alignment(horizontal="center", vertical="center")
+        ws.merge_cells(f"{V.LEGENDE_TEXT_COL}{r}:{V.LEGENDE_MERGE_TO}{r}")
+        t = ws[f"{V.LEGENDE_TEXT_COL}{r}"]
+        t.value = e.text
+        t.font = font(9)
+        t.alignment = Alignment(vertical="center")
+        ws.row_dimensions[r].height = 18
 
 
 def PARAM_WERT_COL(gruppe: str) -> str:
@@ -226,11 +249,12 @@ def write_layout(ws, vt: V.Vertrag) -> None:
 
 def write_rules(ws, vt: V.Vertrag) -> None:
     for r in V.CF_REGELN:
-        for key in r.bereich_keys:
-            col = vt.letter[key]
-            rng = f"{col}{LAY.first}:{col}{LAY.last}"
-            formel = vt.render(r.formel, LAY.first)[1:]
-            ws.conditional_formatting.add(rng, FormulaRule(formula=[formel], fill=fill(r.farbe)))
+        schrift = Font(color=r.schrift, bold=r.fett) if (r.schrift or r.fett) else None
+        formel = vt.render(r.formel, LAY.first)[1:]
+        bereiche = [f"{vt.letter[k]}{LAY.first}:{vt.letter[k]}{LAY.last}" for k in r.bereich_keys]
+        bereiche += [vt.param_cell(k) for k in r.param_keys]
+        for rng in bereiche:
+            ws.conditional_formatting.add(rng, FormulaRule(formula=[formel], fill=fill(r.farbe), font=schrift))
     for d in V.DV_REGELN:
         dv = DataValidation(type=d.typ, operator=d.operator, formula1=d.formula1, formula2=d.formula2, allow_blank=True)
         for key in d.bereich_keys:

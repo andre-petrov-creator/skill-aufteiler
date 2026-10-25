@@ -1,6 +1,6 @@
 ---
 name: aufteiler-modul-6-deal-bewertung
-description: Modul 6 der Aufteiler-Analyse — Deal-Bewertung mit PDF-Export und Excel-Befüllung. Konsumiert State aus Modul 1–5. Wird ausschließlich vom aufteiler-Orchestrator aufgerufen. Seit 2026-06-11 Excel-Schutz verschärft — vollständige Werte-Vorschau (Zelle | Wert | Quell-Modul) im Chat VOR der Excel-Freigabe-Frage; Pauschal-Freigaben ("analysiere alles durch") gelten NICHT als Bestätigung für Excel oder PDF. Seit 2026-06-25 schreibt das Modul AfA (C9) + Gebäudeanteil (C10) als Werte in den Reiter "Verkauf Cashflow" (ex "VK_CF"). Seit 2026-06-26 zusätzlich die Instandhaltungsrücklage (C64, €/m²/Jahr aus RND-Staffel 10/14/18), die die komponentenbasierte C8-Formel (Verwaltung + Rücklage, nur nicht-umlagefähige Vermieterkosten) speist; Rücklagen-Topf-Sensitivität liegt als Excel-Sektion im selben Reiter. Seit 2026-09-11 ist die Excel-Befüllung das Werkzeug `tools/export_excel.py` (`--dry-run` = Pflicht-Werte-Vorschau); das Template ist Fassung V2 (`AUFTEILER_TPL_V2`): der Reiter „Verkauf Cashflow" rechnet vorwärts je Wohnung (Regler €/m² → Kaufpreis, Cashflow vor/nach Steuern, Faktor, Rendite; Hausgeld/Rücklage getrennt; Gebäudeanteil je WE aus BRW × Grundstück × MEA; Kontrollspalten 100 %/109,3 %), das Werkzeug schreibt dafür den Datenblock je WE aus Modul 1/2/5 und lässt `MIETER!K` als Formel-Spiegel stehen. Vertrag: `docs/excel_handoff_vkcf.md`.
+description: Modul 6 der Aufteiler-Analyse — Deal-Bewertung mit PDF-Export und Excel-Befüllung. Konsumiert State aus Modul 1–5. Wird ausschließlich vom aufteiler-Orchestrator aufgerufen. Seit 2026-06-11 Excel-Schutz verschärft — vollständige Werte-Vorschau (Zelle | Wert | Quell-Modul) im Chat VOR der Excel-Freigabe-Frage; Pauschal-Freigaben ("analysiere alles durch") gelten NICHT als Bestätigung für Excel oder PDF. Seit 2026-06-25 schreibt das Modul AfA (C9) + Gebäudeanteil (C10) als Werte in den Reiter "Verkauf Cashflow" (ex "VK_CF"). Seit 2026-06-26 zusätzlich die Instandhaltungsrücklage (C64, €/m²/Jahr aus RND-Staffel 10/14/18), die die komponentenbasierte C8-Formel (Verwaltung + Rücklage, nur nicht-umlagefähige Vermieterkosten) speist; Rücklagen-Topf-Sensitivität liegt als Excel-Sektion im selben Reiter. Seit 2026-09-11 ist die Excel-Befüllung das Werkzeug `tools/export_excel.py` (`--dry-run` = Pflicht-Werte-Vorschau); das Template ist Fassung V2 (`AUFTEILER_TPL_V2`): der Reiter „Verkauf Cashflow" rechnet vorwärts je Wohnung (Eingabe-Weg Regler €/m² · Ziel-Bruttomietrendite · Ziel-Cashflow nach Steuern → Kaufpreis, Cashflow vor/nach Steuern, Faktor/Rendite auf Soll-Miete inkl. Subvention; Hausgeld/Rücklage getrennt; Gebäudeanteil je WE aus BRW × Grundstück × MEA; alles finanziert = 1 + KNK = 108,5 %; seit 2026-10-25 Layout 3 ohne Kontrollspalten/Ampel), das Werkzeug schreibt dafür den Datenblock je WE aus Modul 1/2/5 und lässt `MIETER!K` als Formel-Spiegel stehen. Vertrag: `docs/excel_handoff_vkcf.md`.
 ---
 
 # Modul 5 — Deal-Bewertung
@@ -105,13 +105,12 @@ Befüllung wird ausgetauscht; State-Feld modul_6.bewertungs_score bleibt.
 | RENO!I104 / K104   | <WEG-Teilung>                 | Modul 4      |
 | RENO!F105/I105/K105 | RND-Gutachten (600/WE × N WE) | Modul 4      |
 | VERKAUFSMATRIX!Y27 | <Mietsubvention total, NEGATIV>| Modul 5      |
-| Verkauf Cashflow!C9  | <AfA-Satz, z.B. 0.025>      | Modul 3      |
-| Verkauf Cashflow!C10 | <Gebäudeanteil, z.B. 0.75>  | Modul 2      |
+| Verkauf Cashflow!C30 | <AfA-Satz Std., z.B. 0.025> (Zelle aus dem Vertrag) | Modul 3      |
+| Verkauf Cashflow!C31 | <Gebäudeanteil Std., z.B. 0.75> (Zelle aus dem Vertrag) | Modul 2      |
 | Verkauf Cashflow!C64 | <Rücklage €/m², 10/14/18 aus RND> | Modul 3 (RND) |
 | Verkauf Cashflow Parameterblock (Objekt: Grundstück m², BRW, MEA-Nenner; Käuferprofil: AfA-Satz Std., Gebäudeanteil Std.; Zellen aus `tools/vkcf_vertrag.py`) | <Werte aus Modul 2/3> (Template V2) | Modul 2/3 |
-| Verkauf Cashflow!L/J/G/H/I/Q/R<3+i> | <Regler €/m² = M1-Median, MEA-Zähler, Leerstand, Garagen/Stellplätze je WE (Anzahl und Preis = Anzahl × Preis je Einheit)> (V2) | Modul 1/2/5 |
-| Verkauf Cashflow!AI/AK/AL/AM/AS<3+i> | <Ziel-Sollmiete, Subvention Ø, Garagen-/Stellplatzmiete, Reach-Time je WE> (V2) | Modul 5 |
-| Verkauf Cashflow!AW/AX/AZ<3+i> | <Bewirtschaftungsquote bzw. Hausgeld-Paar je WE, nur wenn erhoben> (V2) | Modul 5 |
+| Verkauf Cashflow Datenblock je WE, Zeile 3+i (Buchstaben aus `tools/vkcf_vertrag.py`, die Vorschau des Werkzeugs zeigt sie) | <Regler €/m² = M1-Median, MEA-Zähler, Leerstand, Garagen/Stellplätze (Anzahl und Preis = Anzahl × Preis je Einheit), Ziel-Sollmiete, Subvention Ø, Garagen-/Stellplatzmiete, Reach-Time, Bewirtschaftungsquote bzw. Hausgeld-Paar> | Modul 1/2/5 |
+| Verkauf Cashflow Eingabe-Weg (Layout 3) | nicht geschrieben: Template-Vorgabe Weg 1 Regler, Ziel-Rendite 5 %, Ziel-CF 0 € — André schaltet in der Excel um; im Chat erwähnen | – |
 | Comments (H10/A40/Y27) | <AfA, Score, Subvention>  | Modul 3/6/5  |
 ```
 
@@ -334,6 +333,8 @@ for cell, key in _kalku_qm_map.items():
         kalku[cell] = float(val)
 
 # ===== 5. Verkauf Cashflow: AfA + Gebäudeanteil + Bewirtschaftungs-Rücklage (Werte) =====
+# NUR V1-Template (Altstand). Ab V2/Layout 3 schreibt tools/export_excel.py ueber die Vertragsschluessel
+# (AfA-Std. C30, Gebaeudeanteil-Std. C31) - C9/C10 sind dort Datenzeilen, ein Write zerstoert die Spalte WHG.
 # Sheet heißt seit 2026-06-25 "Verkauf Cashflow" (vorher "VK_CF").
 vkcf = wb["Verkauf Cashflow"]
 vkcf["C9"]  = round(state["modul_3"]["afa_empfehlung_prozent"] / 100, 4)   # AfA-Satz (z.B. 2.5% -> 0.025)
@@ -490,6 +491,7 @@ Plus Pflicht-Hinweise:
 
 ## Änderungen
 
+- **2026-10-25 — Layout 3 „Verkauf Cashflow": Eingabe-Wege** (`docs/superpowers/specs/2026-10-25-vkcf-eingabe-modi-design.md`): Schalter Regler €/m² / Ziel-Bruttomietrendite / Ziel-Cashflow nach Steuern (mit Subvention), Zielwert global und je WE überschreibbar; Loan-Faktor alles finanziert = 1 + KNK (108,5 %, CRM-Modus „separat": normaler Kaufpreis beurkundet, EK 0); Faktor/Rendite auf Soll-Miete inkl. Subvention; Kontrollspalten „max. tragbar", Ampeln, Zins-Sensitivität und Text-Ampel „Empfehlung" entfallen; eine Eingabefarbe + Legende links unten. Das Werkzeug schreibt dieselben Eingaben wie V2 (Zellen über Schlüssel), der Eingabe-Weg bleibt Template-Vorgabe.
 - **2026-09-11 — Template V2 „Verkauf Cashflow" als Vorwärtskalkulation je Wohnung:** Das Werkzeug erkennt migrierte Templates am Defined Name `AUFTEILER_TPL_V2` und schreibt dann zusätzlich den Datenblock je WE (Regler €/m² = `modul_1.eur_per_qm.median`, MEA-Zähler, Leerstand, Garagen/Stellplätze mit Mieten, Ziel-Sollmiete = (Sollmiete + Obergrenze)/2 × Fläche, Modul-5-Subvention, Reach-Time, Hausgeld-Paar/Quote) und `N6`/`N7`/`N8` (Grundstück mit Quellen-Kommentar, BRW, MEA-Nenner). In V2 ist `MIETER!K` ein Formel-Spiegel und wird nicht geschrieben. Vertrag: `docs/excel_handoff_vkcf.md` (generiert), Spec `docs/superpowers/specs/2026-09-11-vkcf-vorwaertskalkulation-design.md`. Abnahme: `tools/verify_vkcf_vorwaertskalkulation.py` + `tools/verify_vkcf_excel_com.ps1`.
 - **2026-09-11 — Excel-Befüllung als Werkzeug** (`tools/export_excel.py`): Der Excel-Write-Block aus Sektion 3b läuft jetzt reproduzierbar (`--dry-run` = Werte-Vorschau, `--out`, `--force` mit Backup, Temp-Datei + `os.replace`). Neue Writes aus den Modul-5-Feldern der Verkaufs-Kalkulation: `MIETER!G` (Mietername aus `objektdaten.json`), `H`/`I` (Einzug, letzte Erhöhung — als `datetime.date`), `J` aus dem Sollstellungs-Betrag `ist_miete_eur_pro_monat` (vorher `€/m² × Fläche`, verlor Cents), `K` = Garagen- + Stellplatzmiete (Mietspalte, keine Stückzahl), `T4` § 559, `P6`/`B34` aus `kappungsgrenze`. Roundtrip gegen einen echten Skill-Export (Rautenstrauchstraße 1): RENO, Verkauf Cashflow, VERKAUFSMATRIX, Checkliste, NK identisch. Offen im Werkzeug: `BESICHTIGUNG!B18–B23/B28` und `KALKU!E35–E38` (Zustandstexte, Heizung, Schmerzgrenze) — die schreibt der Skill-Lauf weiterhin aus Modul-3/4-Texten. Werte-Vorschau-Tabelle nachgezogen.
 
