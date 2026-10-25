@@ -1,0 +1,20 @@
+[
+  {
+    "idx": 0,
+    "qaRef": "property-evaluation-purpose-0",
+    "name": "",
+    "value": "0",
+    "cls": "option__input",
+    "label_text": "Kaufen",
+    "label_cls": "option-group__option option"
+  },
+  {
+    "idx": 1,
+    "qaRef": "property-evaluation-purpose-1",
+    "name": "",
+    "value": "1",
+    "cls": "option__input",
+    "label_text": "Verkaufen",
+    "label_cls": "option-group__option option"
+  }
+]

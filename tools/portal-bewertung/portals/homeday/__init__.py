@@ -1,0 +1,1 @@
+"""Homeday-Preisatlas-Adapter."""

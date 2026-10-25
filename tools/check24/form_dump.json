@@ -1,0 +1,140 @@
+{
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "tel",
+      "placeholder": " ",
+      "qaRef": "control-element",
+      "maxlength": 5,
+      "label": "Postleitzahl"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "placeholder": " ",
+      "qaRef": "control-element",
+      "maxlength": -1,
+      "label": "Straße"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "placeholder": " ",
+      "qaRef": "control-element",
+      "maxlength": -1,
+      "label": "Nr."
+    },
+    {
+      "tag": "INPUT",
+      "type": "tel",
+      "placeholder": " ",
+      "qaRef": "control-element",
+      "maxlength": 3,
+      "label": "Gesamte Wohnfläche"
+    },
+    {
+      "tag": "INPUT",
+      "type": "tel",
+      "placeholder": " ",
+      "qaRef": "control-element",
+      "maxlength": 4,
+      "label": "Baujahr"
+    },
+    {
+      "tag": "INPUT",
+      "type": "tel",
+      "placeholder": " ",
+      "qaRef": "control-element",
+      "maxlength": 2,
+      "label": "Zimmer"
+    }
+  ],
+  "selects": [
+    {
+      "tag": "SELECT",
+      "qaRef": "select-element",
+      "options": [
+        "Bitte wählen...",
+        "Eigentumswohnung",
+        "Einfamilienhaus",
+        "Doppelhaushälfte",
+        "Reiheneckhaus",
+        "Reihenmittelhaus",
+        "Mehrfamilienhaus"
+      ],
+      "label": "Bitte wählen...  Eigentumswohnung  Einfamilienhaus  Doppelha"
+    },
+    {
+      "tag": "SELECT",
+      "qaRef": "select-element",
+      "options": [
+        "Bitte wählen...",
+        "renovierungsbedürftig",
+        "gut erhalten",
+        "neu / kürzlich renoviert"
+      ],
+      "label": "Bitte wählen...  renovierungsbedürftig  gut erhalten  neu / "
+    },
+    {
+      "tag": "SELECT",
+      "qaRef": "select-element",
+      "options": [
+        "Bitte wählen...",
+        "einfach",
+        "normal",
+        "gehoben",
+        "luxuriös"
+      ],
+      "label": "Bitte wählen...  einfach  normal  gehoben  luxuriös"
+    },
+    {
+      "tag": "SELECT",
+      "qaRef": "select-element",
+      "options": [
+        "Bitte wählen...",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "label": "Bitte wählen...  1  2  3  4  5"
+    },
+    {
+      "tag": "SELECT",
+      "qaRef": "select-element",
+      "options": [
+        "Bitte wählen...",
+        "0",
+        "1",
+        "2"
+      ],
+      "label": "Bitte wählen...  0  1  2"
+    },
+    {
+      "tag": "SELECT",
+      "qaRef": "select-element",
+      "options": [
+        "Bitte wählen...",
+        "0",
+        "1",
+        "2"
+      ],
+      "label": "Bitte wählen...  0  1  2"
+    }
+  ],
+  "radios": [
+    {
+      "tag": "RADIO",
+      "qaRef": "property-evaluation-purpose-0",
+      "value": "0",
+      "label": "Kaufen"
+    },
+    {
+      "tag": "RADIO",
+      "qaRef": "property-evaluation-purpose-1",
+      "value": "1",
+      "label": "Verkaufen"
+    }
+  ]
+}

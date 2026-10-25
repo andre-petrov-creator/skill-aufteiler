@@ -1,0 +1,10 @@
+playwright>=1.40
+pytest>=7.0
+anthropic>=0.40
+python-dotenv>=1.0
+# Tracking-Link-Aufloesung (inspectors/evernest_open_link.py - Bild-Download nach Browser-Render)
+requests>=2.30
+# Immometrica-Adapter (Anti-Detect Chrome via CDP)
+nodriver>=0.50
+playwright-stealth>=1.0.6
+2captcha-python>=1.4.0
