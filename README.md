@@ -12,7 +12,7 @@ In Claude Code:
 Danach unter `/plugin` → Marketplaces → `skill-aufteiler` das **Auto-Update einschalten**.
 
 ## Voraussetzungen
-- Python 3 mit `pip install openpyxl reportlab`
+- Python 3 mit `python -m pip install openpyxl reportlab`
 - Die Skills rufen Skripte unter `tools/` und die Excel-Vorlage `template/` dieses Repos auf.
   Die Pfade in den SKILL.md gehen vom Projekt-Wurzelverzeichnis aus. Klone dieses Repo daher zusätzlich nach
   `C:\meine-projekte\Immobilien\Aufteiler\` oder passe die Pfade an.
